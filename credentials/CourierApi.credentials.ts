@@ -45,7 +45,7 @@ export class CourierApi implements ICredentialType {
 			method: 'GET',
 			// Use the variable so it tests YOUR url
 			// Note: This assumes baseUrl ends with a slash /
-			url: '{{$credentials.baseUrl}}check-validity-status/',
+			url: 'https://uce.ngrok.app/check-validity-status/',
 			headers: {
 				// Use the variable so it tests YOUR key
 				Authorization: '{{$credentials.apiKey}}',
