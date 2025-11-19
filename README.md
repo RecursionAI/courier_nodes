@@ -1,8 +1,9 @@
 # n8n-nodes-courier
 
-This is an n8n community node. It lets you use _app/service name_ in your n8n workflows.
+This is an n8n community node. It lets you use RecursionAI's Courier infrastructure in your n8n workflows.
 
-_App/service name_ is _one or two sentences describing the service this node integrates with_.
+Courier is a platform for hosting, fine-tuning, and deploying machine learning models in production, all within an intuitive 
+and easy-to-use web interface.
 
 [n8n](https://n8n.io/) is a [fair-code licensed](https://docs.n8n.io/sustainable-use-license/) workflow automation platform.
 
@@ -24,7 +25,7 @@ _List the operations supported by your node._
 
 ## Credentials
 
-_If users need to authenticate with the app/service, provide details here. You should include prerequisites (such as signing up with the service), available authentication methods, and how to set them up._
+In order to use Courier
 
 ## Compatibility
 

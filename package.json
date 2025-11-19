@@ -32,11 +32,10 @@
 		"n8nNodesApiVersion": 1,
 		"strict": true,
 		"credentials": [
-			"dist/credentials/CourierApi.credentials.ts"
+			"dist/credentials/CourierApi.credentials.js"
 		],
 		"nodes": [
-			"dist/nodes/Example/Example.node.js",
-			"dist/nodes/LLM/CourierLlm.node.ts"
+			"dist/nodes/Llm/CourierLlm.node.js"
 		]
 	},
 	"devDependencies": {
@@ -49,5 +48,8 @@
 	"peerDependencies": {
 		"n8n-workflow": "*",
 		"typescript": "*"
+	},
+	"dependencies": {
+
 	}
 }
