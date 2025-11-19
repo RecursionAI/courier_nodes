@@ -78,6 +78,7 @@ export class CourierLlm implements INodeType {
 				default: 'load',
 				description: 'Add or remove a model from memory',
 			},
+
 			{
 				displayName: 'Model Name',
 				name: 'modelName',
@@ -91,6 +92,7 @@ export class CourierLlm implements INodeType {
 				},
 				description: 'Specific LLM this node is using',
 			},
+
 			{
 				displayName: 'Context Window',
 				name: 'contextWindow',
@@ -104,6 +106,7 @@ export class CourierLlm implements INodeType {
 				},
 				description: 'The context window for the model',
 			},
+
 			{
 				displayName: 'Adapter Path',
 				name: 'adapterPath',
@@ -116,6 +119,7 @@ export class CourierLlm implements INodeType {
 				},
 				description: 'If an adapter path is available, select it here',
 			},
+
 			// {
 			// 	displayName: 'Quantization',
 			// 	name: 'quantization',
