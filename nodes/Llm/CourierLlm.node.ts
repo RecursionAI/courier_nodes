@@ -5,6 +5,8 @@ import {
 	INodeType,
 	IHttpRequestOptions,
 	INodeTypeDescription,
+	ILoadOptionsFunctions,
+	INodePropertyOptions,
 } from 'n8n-workflow';
 
 export class CourierLlm implements INodeType {
@@ -14,7 +16,6 @@ export class CourierLlm implements INodeType {
 		icon: 'file:recursion_logo.svg',
 		group: ['transform'],
 		version: 1,
-		subtitle: '={{$parameter["operation"]}}',
 		description: 'Interact with Courier Local or Cloud APIs',
 		defaults: {
 			name: 'Courier LLM',
@@ -30,118 +31,18 @@ export class CourierLlm implements INodeType {
 			},
 		],
 		properties: [
-			// ----------------------------------
-			//         Operations
-			// ----------------------------------
 			{
-				displayName: 'Operation',
-				name: 'operation',
+				displayName: 'Model Name or ID',
+				name: 'model',
 				type: 'options',
-				noDataExpression: true,
-				options: [
-					{
-						name: 'Chat',
-						value: 'chat',
-						action: 'Chat with a model',
-					},
-					{
-						name: 'Manage Model',
-						value: 'manage',
-						action: 'Load or unload a model toggle',
-					},
-				],
-				default: 'chat',
-			},
-
-			// ----------------------------------
-			//         Manage (Toggle) Fields
-			// ----------------------------------
-			{
-				displayName: 'Action',
-				name: 'manageAction',
-				type: 'options',
-				displayOptions: {
-					show: {
-						operation: ['manage'],
-					},
+				typeOptions: {
+					loadOptionsMethod: 'getModels',
 				},
-				options: [
-					{
-						name: 'Load Model (Turn On)',
-						value: 'load',
-					},
-					{
-						name: 'Unload Model (Turn Off)',
-						value: 'unload',
-					},
-				],
-				default: 'load',
-				description: 'Add or remove a model from memory',
-			},
-
-			{
-				displayName: 'Model Name',
-				name: 'modelName',
-				type: 'string',
-				default: '/Volumes/Extreme SSD/models/gemma-3-12b-it-8bit',
-				required: true,
-				displayOptions: {
-					show: {
-						operation: ['manage'],
-					},
-				},
-				description: 'Specific LLM this node is using',
-			},
-
-			{
-				displayName: 'Context Window',
-				name: 'contextWindow',
-				type: 'number',
-				default: 128000,
-				required: true,
-				displayOptions: {
-					show: {
-						operation: ['manage'],
-					},
-				},
-				description: 'The context window for the model',
-			},
-
-			{
-				displayName: 'Adapter Path',
-				name: 'adapterPath',
-				type: 'string',
 				default: '',
-				displayOptions: {
-					show: {
-						operation: ['manage'],
-					},
-				},
-				description: 'If an adapter path is available, select it here',
+				required: true,
+				description:
+					'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
 			},
-
-			// {
-			// 	displayName: 'Quantization',
-			// 	name: 'quantization',
-			// 	type: 'options',
-			// 	displayOptions: {
-			// 		show: {
-			// 			operation: ['manage'],
-			// 			manageAction: ['load'],
-			// 		},
-			// 	},
-			// 	// eslint-disable-next-line n8n-nodes-base/node-param-options-type-unsorted-items
-			// 	options: [
-			// 		{ name: 'F16', value: 'f16' },
-			// 		{ name: 'Q8_0', value: 'q8_0' },
-			// 		{ name: 'Q5_K_M', value: 'q5_k_m' },
-			// 		{ name: 'Q4_K_M', value: 'q4_k_m' },
-			// 		{ name: 'Q4_0', value: 'q4_0' },
-			// 	],
-			// 	default: 'f16',
-			// 	description: 'Model Precision',
-			// },
-
 			// ----------------------------------
 			//         Chat Fields
 			// ----------------------------------
@@ -150,11 +51,6 @@ export class CourierLlm implements INodeType {
 				name: 'systemPrompt',
 				type: 'string',
 				default: 'You are a helpful assistant.',
-				displayOptions: {
-					show: {
-						operation: ['chat'],
-					},
-				},
 			},
 			{
 				displayName: 'Prompt',
@@ -165,14 +61,44 @@ export class CourierLlm implements INodeType {
 				},
 				default: '',
 				required: true,
-				displayOptions: {
-					show: {
-						operation: ['chat'],
-					},
-				},
 				description: 'The input text for the LLM',
 			},
 		],
+	};
+
+	methods = {
+		loadOptions: {
+			async getModels(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const credentials = await this.getCredentials('courierApi');
+				let baseUrl = credentials.baseUrl as string;
+				if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+
+				const responseData = await this.helpers.httpRequestWithAuthentication.call(
+					this,
+					'courierApi',
+					{
+						method: 'GET',
+						url: `${baseUrl}/get-courier-models-for-user/`,
+						json: true,
+					},
+				);
+
+				const items = (responseData.models as IDataObject[]) || [];
+				const returnData: INodePropertyOptions[] = [];
+
+				for (const item of items) {
+					returnData.push({
+						name: `${item.model_name} (Context: ${item.context_window})`,
+						value: JSON.stringify({
+							name: item.model_name,
+							id: item.model_id,
+						}),
+					});
+				}
+
+				return returnData;
+			},
+		},
 	};
 
 	// Fix 1: IExecuteFunctions is now imported from n8n-workflow
@@ -181,57 +107,36 @@ export class CourierLlm implements INodeType {
 		const returnData: INodeExecutionData[] = [];
 
 		const credentials = await this.getCredentials('courierApi');
-		const baseUrl = credentials.baseUrl as string;
+		let baseUrl = credentials.baseUrl as string;
+		if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
 
 		for (let i = 0; i < items.length; i++) {
 			try {
-				const operation = this.getNodeParameter('operation', i) as string;
-				let endpoint = '';
-				let body: IDataObject = {};
-
-				if (operation === 'manage') {
-					const action = this.getNodeParameter('manageAction', i) as string;
-					const modelName = this.getNodeParameter('modelName', i) as string;
-					const contextWindow = this.getNodeParameter('contextWindow', i) as string;
-					const adapterPath = this.getNodeParameter('adapterPath', i) as string;
-
-					if (action === 'load') {
-						endpoint = 'add-model/';
-						body = {
-							model_name: modelName,
-							context_window: contextWindow,
-							adapter_path: adapterPath,
-							api_key: credentials.apiKey,
-							model_type: 'text-text',
-						};
-					} else {
-						endpoint = 'delete-model/';
-						body = {
-							model_name: modelName,
-							context_window: contextWindow,
-							adapter_path: adapterPath,
-							api_key: credentials.apiKey,
-						};
-					}
+				const modelDataString = this.getNodeParameter('model', i) as string;
+				let modelData;
+				try {
+					modelData = JSON.parse(modelDataString);
+					// eslint-disable-next-line @typescript-eslint/no-unused-vars
+				} catch (e) {
+					// Fallback if user entered a manual string expression that isn't JSON
+					modelData = { name: modelDataString, id: null };
 				}
 
-				if (operation === 'chat') {
-					const modelName = this.getNodeParameter('modelName', i) as string;
-					endpoint = 'inference/';
-					const prompt = this.getNodeParameter('prompt', i) as string;
-					const systemPrompt = this.getNodeParameter('systemPrompt', i) as string;
+				const endpoint = '/inference/';
+				const prompt = this.getNodeParameter('prompt', i) as string;
+				const systemPrompt = this.getNodeParameter('systemPrompt', i) as string;
 
-					body = {
-						model_name: modelName,
-						api_key: credentials.apiKey,
-						temperature: 0.8,
-						messages: [
-							{ role: 'system', content: systemPrompt },
-							{ role: 'user', content: prompt },
-						],
-						stream: false,
-					};
-				}
+				const body: IDataObject = {
+					model_name: modelData.name,
+					model_id: modelData.id,
+					api_key: credentials.apiKey,
+					temperature: 0.8,
+					messages: [
+						{ role: 'system', content: systemPrompt },
+						{ role: 'user', content: prompt },
+					],
+					stream: true,
+				};
 
 				const options: IHttpRequestOptions = {
 					method: 'POST',
@@ -246,12 +151,21 @@ export class CourierLlm implements INodeType {
 					options,
 				);
 
+				const responseData = response as IDataObject;
+				const result: IDataObject = { ...responseData };
+
+				// Map 'content' to 'output' to make it compatible with standard n8n chat handling
+				if (responseData.content) {
+					result.output = responseData.content;
+				}
+
 				returnData.push({
-					json: response as IDataObject,
+					json: result,
 				});
 			} catch (error) {
 				if (this.continueOnFail()) {
-					returnData.push({ json: { error: error.message } });
+					const errorMessage = (error as Error).message;
+					returnData.push({ json: { error: errorMessage } });
 					continue;
 				}
 				throw error;

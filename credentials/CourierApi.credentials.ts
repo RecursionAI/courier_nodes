@@ -35,7 +35,7 @@ export class CourierApi implements ICredentialType {
 		type: 'generic',
 		properties: {
 			headers: {
-				Authorization: '{{$credentials.apiKey}}',
+				Authorization: '={{$credentials.apiKey}}',
 			},
 		},
 	};
@@ -48,7 +48,7 @@ export class CourierApi implements ICredentialType {
 			url: 'https://uce.ngrok.app/check-validity-status/',
 			headers: {
 				// Use the variable so it tests YOUR key
-				Authorization: '{{$credentials.apiKey}}',
+				Authorization: '={{$credentials.apiKey}}',
 			},
 		},
 		rules: [
