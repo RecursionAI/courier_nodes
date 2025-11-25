@@ -26,7 +26,7 @@ export class CourierApi implements ICredentialType {
 			typeOptions: {
 				password: true,
 			},
-			default: 'ff65aa72-a25f-4928-a733-b5ced486221f',
+			default: 'aaa-aaaaaaa-aaaaaaa',
 			description: 'The API Key for authentication',
 		},
 	];
